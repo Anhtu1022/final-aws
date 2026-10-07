@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     DATABASE_URL: Optional[str] = None
 
     # AWS S3 Settings (Task 3.1)
-    AWS_REGION: str = "ap-southeast-1"
+    AWS_REGION: str = "us-east-1"
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
     S3_BUCKET_NAME: Optional[str] = None
