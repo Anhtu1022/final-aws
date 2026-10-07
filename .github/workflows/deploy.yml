@@ -90,7 +90,7 @@ jobs:
             docker run -d \
               --name fastapi_cloud_app \
               --restart always \
-              -p 80:8000 \
+              -p 8000:8000 \
               -e APP_NAME="FastAPI AWS Cloud Application" \
               -e APP_ENV=production \
               -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
@@ -105,5 +105,5 @@ jobs:
             
             echo "=== Step 7: Verifying application health ==="
             sleep 5
-            curl -f http://localhost:80/health || (echo "Deployment health check failed!" && exit 1)
+            curl -f http://localhost:8000/health || (echo "Deployment health check failed!" && exit 1)
             echo "=== Deployment Successful on EC2! ==="

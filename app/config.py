@@ -10,15 +10,15 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     PORT: int = 8000
 
-    # AWS RDS PostgreSQL Settings (Task 2.1)
+    # Database Settings
     DB_HOST: Optional[str] = None
     DB_PORT: int = 5432
     DB_USER: Optional[str] = "postgres"
     DB_PASSWORD: Optional[str] = None
-    DB_NAME: Optional[str] = "fastapi-prod"
+    DB_NAME: Optional[str] = "fastapiprod"
     DATABASE_URL: Optional[str] = None
 
-    # AWS S3 Settings (Task 3.1)
+    # Storage Settings
     AWS_REGION: str = "ap-southeast-1"
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
@@ -43,11 +43,13 @@ class Settings(BaseSettings):
             # Handle possible postgres:// scheme from old heroku/aws style
             url = self.DATABASE_URL
             if url.startswith("postgres://"):
-                url = url.replace("postgres://", "postgresql://", 1)
+                url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+            elif url.startswith("postgresql://") and not url.startswith("postgresql+psycopg2://"):
+                url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
             return url
 
         if self.DB_HOST and self.DB_USER and self.DB_PASSWORD and self.DB_NAME:
-            return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+            return f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
         # Fallback to local SQLite for local testing without cloud RDS
         return "sqlite:///./local_test.db"

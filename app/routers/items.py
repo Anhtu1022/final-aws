@@ -6,7 +6,7 @@ from app.database import get_db
 from app.models import Item
 from app.schemas import ItemCreate, ItemUpdate, ItemResponse
 
-router = APIRouter(prefix="/items", tags=["Items (RDS PostgreSQL Demo)"])
+router = APIRouter(prefix="/items", tags=["Items"])
 
 
 @router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED, summary="Create Item")
