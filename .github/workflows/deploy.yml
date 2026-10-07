@@ -82,9 +82,9 @@ jobs:
             echo "=== Step 3: Rebuilding Docker image directly on EC2 instance ==="
             docker build -t fastapi-prod-app:latest .
             
-            echo "=== Step 4: Stopping and removing previous container ==="
-            docker stop fastapi_cloud_app || true
-            docker rm fastapi_cloud_app || true
+            echo "=== Step 4: Stopping and removing previous containers ==="
+            docker stop fastapi_cloud_app fastapi-app || true
+            docker rm fastapi_cloud_app fastapi-app || true
             
             echo "=== Step 5: Running new container with AWS Secrets ==="
             docker run -d \
