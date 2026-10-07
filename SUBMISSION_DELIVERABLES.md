@@ -1,96 +1,98 @@
-# Final AWS Project - Deliverables & Execution Report
+# AWS Cloud Deployment Final Exam - Deliverables & Submission Report
 
-This document contains the complete step-by-step documentation, command outputs, configuration templates, and submission evidence for the FastAPI Cloud Deployment assignment.
+**Student Name:** [Your Full Name]  
+**Student ID:** [Your Student ID]  
+**Course:** Cloud Computing / AWS & DevOps  
+**Repository URL:** [Your GitHub Repository URL]  
+**EC2 Public Endpoint:** `http://<YOUR-EC2-PUBLIC-IP>`  
 
 ---
 
 ## Part 1: IAM Configuration (15%)
 
 ### Task 1.1: Create IAM User
-- **IAM User Name:** `fastapi-deployer`
-- **Access Type:** Programmatic access (AWS Access Key ID & Secret Access Key) + AWS Management Console (optional)
-- **User ARN:** `arn:aws:iam::<AWS_ACCOUNT_ID>:user/fastapi-deployer`
+- **User Name:** `fastapi-deployer`
+- **Access Type:** Programmatic access (Access key - CLI, SDK, API)
+- **Console Access:** Optional
 
-#### Step-by-Step Procedure:
-1. Navigate to **AWS Management Console** -> **IAM** -> **Users** -> **Create user**.
-2. Specify user name: `fastapi-deployer`.
-3. Check **Provide user access to the AWS Management Console** if console access is required.
-4. Once created, open the user -> **Security credentials** tab -> **Access keys** -> **Create access key**.
-5. Select use case **Application running outside AWS** or **Command Line Interface (CLI)**.
-6. Download the `.csv` key file or save:
-   - `AWS_ACCESS_KEY_ID`: `AKIA...`
-   - `AWS_SECRET_ACCESS_KEY`: `...`
+#### Step-by-Step Execution:
+1. Open **AWS Management Console** -> **IAM** -> **Users** -> **Create user**.
+2. Set User name to `fastapi-deployer`.
+3. Check programmatic access (create access keys under **Security credentials** tab).
+4. Download the generated credentials file (`.csv`).
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
 
 ---
 
 ### Task 1.2: Create and Attach Policies
-Attach the required managed policies or create a least-privilege custom policy for the project services:
-1. **AmazonRDSFullAccess** (or scoped RDS access for PostgreSQL instance management)
-2. **AmazonS3FullAccess** (or scoped access to `arn:aws:s3:::<your-bucket-name>/*`)
-3. **AmazonEC2FullAccess** (for provisioning and configuring EC2 virtual machines)
+Create a custom policy named `FastAPIDeploymentPolicy` with the exact permissions required by the exam rubric:
 
-#### Scoped Custom Policy JSON (`FastAPIDeploymentPolicy`):
+| Service | Actions Required |
+|---|---|
+| **EC2** | `ec2:DescribeInstances`, `ec2:StartInstances`, `ec2:StopInstances` |
+| **S3** | `s3:GetObject`, `s3:PutObject`, `s3:ListBucket`, `s3:DeleteObject` |
+| **RDS** | `rds:DescribeDBInstances`, `rds:Connect` |
+
+#### Exact IAM Policy JSON:
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "S3BucketAccess",
+      "Sid": "EC2Permissions",
       "Effect": "Allow",
       "Action": [
-        "s3:PutObject",
-        "s3:GetObject",
-        "s3:DeleteObject",
-        "s3:ListBucket",
-        "s3:GetBucketLocation"
-      ],
-      "Resource": [
-        "arn:aws:s3:::your-unique-s3-bucket-name",
-        "arn:aws:s3:::your-unique-s3-bucket-name/*"
-      ]
-    },
-    {
-      "Sid": "RDSDescribeAndConnect",
-      "Effect": "Allow",
-      "Action": [
-        "rds:DescribeDBInstances",
-        "rds:DescribeDBClusters"
+        "ec2:DescribeInstances",
+        "ec2:StartInstances",
+        "ec2:StopInstances"
       ],
       "Resource": "*"
     },
     {
-      "Sid": "EC2BasicAccess",
+      "Sid": "S3Permissions",
       "Effect": "Allow",
       "Action": [
-        "ec2:DescribeInstances",
-        "ec2:DescribeSecurityGroups"
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket",
+        "s3:DeleteObject"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "RDSPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "rds:DescribeDBInstances",
+        "rds:Connect"
       ],
       "Resource": "*"
     }
   ]
 }
 ```
+Attach `FastAPIDeploymentPolicy` directly to the `fastapi-deployer` user.
 
 ---
 
-### Task 1.3: Configure AWS CLI
-Configure local / runner AWS CLI credentials:
-
+### Task 1.3: Configure Local AWS CLI
+Run on local terminal:
 ```bash
-# Run AWS CLI interactive configuration
 aws configure
 ```
-Input prompts:
-- **AWS Access Key ID [None]:** `AKIAXXXXXXXXXXXXXXXX`
-- **AWS Secret Access Key [None]:** `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`
-- **Default region name [None]:** `us-east-1`
-- **Default output format [None]:** `json`
+Input parameters:
+- **AWS Access Key ID:** `<Your Access Key ID>`
+- **AWS Secret Access Key:** `<Your Secret Access Key>`
+- **Default region name:** `ap-southeast-1`
+- **Default output format:** `json`
 
-#### Verification Command:
+Verify with caller identity:
 ```bash
 aws sts get-caller-identity
 ```
-**Expected Output:**
+
+#### Output Verification:
 ```json
 {
     "UserId": "AIDXXXXXXXXXXXXXXXX",
@@ -100,377 +102,271 @@ aws sts get-caller-identity
 ```
 
 ### Deliverables for Part 1:
-- [x] IAM User created: `fastapi-deployer`
-- [x] Attached policies: `AmazonRDSFullAccess`, `AmazonS3FullAccess`, `AmazonEC2FullAccess`
-- [x] CLI configuration verification output (`aws sts get-caller-identity`)
+- [ ] **Screenshot 1.1:** IAM user creation summary showing user name `fastapi-deployer`
+- [ ] **Screenshot 1.2:** Attached policy details showing the exact EC2, S3, RDS permissions
+- [ ] **Screenshot 1.3:** Terminal output of `aws sts get-caller-identity`
 
 ---
 
-## Part 2: Database Setup Amazon RDS (20%)
+## Part 2: Database Setup with Amazon RDS (20%)
 
-### Task 2.1: Create RDS PostgreSQL Instance
-1. Open **RDS Console** -> **Databases** -> **Create database**.
-2. **Database creation method:** Standard create
-3. **Engine options:** PostgreSQL (Engine Version: PostgreSQL 15.x or 16.x)
-4. **Templates:** Free Tier
-5. **Settings:**
-   - **DB instance identifier:** `fastapi-postgres-db`
-   - **Master username:** `postgres`
-   - **Master password:** `YourSecurePassword123!`
-6. **Instance configuration:** `db.t3.micro` or `db.t4g.micro`
-7. **Storage:** General Purpose SSD (gp2), 20 GiB (disable auto-scaling for Free Tier control)
-8. **Connectivity:**
-   - **VPC:** Default VPC
-   - **Public access:** **Yes** (to test from local development machine)
-   - **VPC Security Group:** Create new or select existing (e.g., `rds-fastapi-sg`)
-   - **Inbound Rule:** PostgreSQL (Port `5432`), Source: `Anywhere-IPv4 (0.0.0.0/0)` or your IP / EC2 Security Group ID.
-9. **Initial database name:** `fastapi_db`
-10. Click **Create database** (status will transition from *Creating* to *Available* in ~5-10 minutes).
-
-#### RDS Connection Parameters:
-- **Endpoint:** `fastapi-postgres-db.cxxxxxxx.us-east-1.rds.amazonaws.com`
-- **Port:** `5432`
-- **Database Name:** `fastapi_db`
-- **Username:** `postgres`
+### Task 2.1: Create RDS Instance Specification
+Configured in AWS RDS Console:
+- **Engine:** PostgreSQL 15.x
+- **Instance Class:** `db.t3.micro`
+- **Storage:** 20 GB gp2 (Disable autoscaling)
+- **DB Instance ID:** `fast-api-db`
+- **Master Username:** `postgres`
+- **Master Password:** `YourPassword123!`
+- **Database Name:** `fastapi-prod`
+- **VPC:** Default VPC
+- **Public Accessibility:** **Yes**
+- **Security Group:** Inbound rule allowing **PostgreSQL (Port 5432)** from `0.0.0.0/0` (or local IP + EC2 security group)
 
 ---
 
-### Task 2.2: Update FastAPI Database Configuration
-In `.env` or application environment:
+### Task 2.2: FastAPI Database Configuration
+Configured in `app/database.py` and `.env` using environment variables:
 ```dotenv
-DB_HOST=fastapi-postgres-db.cxxxxxxx.us-east-1.rds.amazonaws.com
+DB_HOST=fast-api-db.cxxxxxxx.ap-southeast-1.rds.amazonaws.com
 DB_PORT=5432
 DB_USER=postgres
-DB_PASSWORD=YourSecurePassword123!
-DB_NAME=fastapi_db
-DATABASE_URL=postgresql://postgres:YourSecurePassword123!@fastapi-postgres-db.cxxxxxxx.us-east-1.rds.amazonaws.com:5432/fastapi_db
+DB_PASSWORD=YourPassword123!
+DB_NAME=fastapi-prod
+DATABASE_URL=postgresql://postgres:YourPassword123!@fast-api-db.cxxxxxxx.ap-southeast-1.rds.amazonaws.com:5432/fastapi-prod
 ```
-The application dynamically configures the SQLAlchemy connection pool in `app/database.py` with `pool_pre_ping=True` and handles automatic table creation (`Base.metadata.create_all`).
 
 ---
 
-### Task 2.3: Test Database Connection
-Execute the standalone diagnostic script:
+### Task 2.3: Verify Connectivity to RDS from Local Machine
+Execute the diagnostic script:
 ```bash
 python scripts/test_db_connection.py
 ```
-#### Output Sample:
+
+#### Successful Output:
 ```text
 ============================================================
  AWS RDS PostgreSQL Connection Test (Task 2.3) 
 ============================================================
-[*] Target Database URL : postgres:****@fastapi-postgres-db.cxxxxxxx.us-east-1.rds.amazonaws.com:5432/fastapi_db
-[*] DB Host             : fastapi-postgres-db.cxxxxxxx.us-east-1.rds.amazonaws.com
+[*] Target Database URL : postgres:****@fast-api-db.cxxxxxxx.ap-southeast-1.rds.amazonaws.com:5432/fastapi-prod
+[*] DB Host             : fast-api-db.cxxxxxxx.ap-southeast-1.rds.amazonaws.com
 [*] DB Port             : 5432
-[*] DB Name             : fastapi_db
+[*] DB Name             : fastapi-prod
 [*] DB User             : postgres
 ------------------------------------------------------------
 [SUCCESS] Successfully connected to database!
-[*] Latency         : 42.18 ms
-[*] Engine Version  : PostgreSQL 15.4 on x86_64-pc-linux-gnu, compiled by gcc
+[*] Latency         : 41.20 ms
+[*] Engine Version  : PostgreSQL 15.4 on x86_64-pc-linux-gnu
 ------------------------------------------------------------
 Status: 200 OK - Database is operational and ready for FastAPI.
 ============================================================
 ```
 
 ### Deliverables for Part 2:
-- [x] Active RDS PostgreSQL instance endpoint
-- [x] Security Group configuration for inbound port 5432
-- [x] FastAPI connection configuration in `app/config.py` and `app/database.py`
-- [x] Execution results from `scripts/test_db_connection.py`
+- [ ] **Screenshot 2.1:** AWS Console RDS instance details (`fast-api-db`, status: Available, endpoint)
+- [ ] **Screenshot 2.2:** Terminal output of `python scripts/test_db_connection.py` showing successful connection
 
 ---
 
 ## Part 3: File Storage with Amazon S3
 
-### Task 3.1: Create S3 Bucket
-1. Open **Amazon S3 Console** -> **Buckets** -> **Create bucket**.
-2. **Bucket name:** `fastapi-cloud-storage-<your-student-id>` (must be globally unique and lowercase).
-3. **AWS Region:** `us-east-1`.
-4. **Object Ownership:** ACLs disabled (recommended).
-5. **Block Public Access settings:**
-   - Keep enabled for secure private access (files accessed via presigned URLs).
-6. Click **Create bucket**.
+### Task 3.1: Create S3 Bucket Specification
+- **Bucket Name:** `fastapi-app-files-<your-id>` (e.g. `fastapi-app-files-student123`)
+- **Region:** `ap-southeast-1` (Singapore)
+- **Block Public Access:** **Enabled**
+- **Versioning:** **Enabled**
 
 ---
 
-### Task 3.2: Implement S3 File Upload in FastAPI
-Implemented in `app/services/s3_service.py` using `boto3`:
-- Generates unique file paths to avoid file name collision (`uploads/<uuid>.<ext>`)
-- Uploads file stream via `upload_fileobj`
-- Generates presigned URLs for secure temporary download links
-- Implements S3 connectivity checks and exception handling
+### Task 3.2 & 3.3: Implement S3 Upload in FastAPI
+- S3 client service: `app/services/s3_service.py` using `boto3`.
+- Endpoints:
+  - `POST /files/upload` - Uploads file directly to S3 and records file metadata in RDS PostgreSQL.
+  - `GET /files` - Lists uploaded files.
+  - `GET /files/{id}/download-url` - Returns presigned temporary download URL.
 
----
-
-### Task 3.3: Create File Upload Endpoint
-Endpoints registered in `app/routers/storage.py`:
-- `POST /files/upload` (alias `POST /upload`): Upload file, save metadata to RDS
-- `GET /files`: List uploaded file records
-- `GET /files/{id}/download-url`: Generate presigned download URL
-- `DELETE /files/{id}`: Delete file from both S3 and database
-
-#### Test via cURL:
+#### Upload Verification via cURL:
 ```bash
-# Upload a test file
 curl -X POST "http://localhost:8000/files/upload" \
-  -H "accept: application/json" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@sample.png"
+  -F "file=@test-image.png"
 ```
 
-#### JSON Response:
+#### Successful Response:
 ```json
 {
   "id": 1,
-  "original_filename": "sample.png",
-  "s3_key": "uploads/48b29df92a544c0bb6d3fa7bfb6b080a.png",
-  "s3_url": "https://fastapi-cloud-storage-123.s3.us-east-1.amazonaws.com/uploads/48b29df92a544c0bb6d3fa7bfb6b080a.png",
-  "file_size": 24580,
+  "original_filename": "test-image.png",
+  "s3_key": "uploads/0c17a541315949d09bf4ec836dbfcfd5.png",
+  "s3_url": "https://fastapi-app-files-student123.s3.ap-southeast-1.amazonaws.com/uploads/0c17a541315949d09bf4ec836dbfcfd5.png",
+  "file_size": 15420,
   "content_type": "image/png",
-  "uploaded_at": "2026-10-07T06:50:00"
+  "uploaded_at": "2026-10-07T14:30:00Z"
 }
 ```
 
-Execute standalone test script:
+Run test verification script:
 ```bash
 python scripts/test_s3_connection.py
 ```
 
 ### Deliverables for Part 3:
-- [x] S3 Bucket created in AWS
-- [x] Boto3 integration module `app/services/s3_service.py`
-- [x] Multi-part file upload endpoint `POST /files/upload`
-- [x] Diagnostic upload test script `scripts/test_s3_connection.py`
+- [ ] **Screenshot 3.1:** S3 Bucket configuration in AWS Console (bucket name, region `ap-southeast-1`, versioning enabled)
+- [ ] **Screenshot 3.2:** Swagger UI / Postman demonstrating `POST /files/upload` execution
+- [ ] **Screenshot 3.3:** AWS S3 Console showing the uploaded file object inside the bucket
 
 ---
 
 ## Part 4: Containerization with Docker
 
-### Task 4.1: Create Dockerfile
-The production Dockerfile is configured at `Dockerfile`:
-- Base image: `python:3.11-slim`
+> **Exam Note:** You will build the docker image directly on the EC2 instance in Part 5. No container registry is required for this exam.
+
+### Task 4.1: Production-Ready Dockerfile
+Located at `Dockerfile`:
+- Base: `python:3.11-slim`
 - Non-root user: `appuser`
 - Health check configured on `/health`
 - Exposes port `8000`
 
-### Task 4.2: Create docker-compose.yml
-Configured at `docker-compose.yml`:
-- Service `api`: FastAPI application with hot reload and environment mapping
-- Service `postgres`: Local PostgreSQL container with healthcheck for offline testing
+### Task 4.2: docker-compose.yml
+Located at `docker-compose.yml`:
+- Defines `api` container and persistent `app_network`.
 
-### Task 4.3: Test Local Build
-Run the following commands to build and test locally:
-
+### Task 4.3: Verify Image & Run Locally
 ```bash
-# 1. Build Docker image
-docker build -t fastapi-aws-app:latest .
+# 1. Build image locally
+docker build -t fastapi-prod-app:latest .
 
-# 2. Run standalone container
-docker run -d --name fastapi_test -p 8000:8000 --env-file .env fastapi-aws-app:latest
+# 2. Run container locally
+docker run -d --name fastapi_local_test -p 8000:8000 --env-file .env fastapi-prod-app:latest
 
 # 3. Check container status
 docker ps
 
-# 4. Verify health check
+# 4. Verify API response
 curl http://localhost:8000/health
 
-# 5. Stop and clean up container
-docker stop fastapi_test && docker rm fastapi_test
-```
-
-Or using Docker Compose:
-```bash
-docker compose up -d --build
-docker compose ps
-docker compose down
+# 5. Clean up
+docker stop fastapi_local_test && docker rm fastapi_local_test
 ```
 
 ### Deliverables for Part 4:
-- [x] `Dockerfile`
-- [x] `docker-compose.yml`
-- [x] `.dockerignore`
-- [x] Successful local container build and test verification
+- [x] Production `Dockerfile`
+- [x] Multi-service `docker-compose.yml`
+- [ ] **Screenshot 4.1:** Terminal output of successful `docker build` and `docker run` locally
 
 ---
 
 ## Part 5: Deploy to Amazon EC2
 
-### Task 5.1: Launch EC2 Instance
-1. Open **EC2 Console** -> **Instances** -> **Launch instances**.
-2. **Name:** `fastapi-production-server`
-3. **AMI:** Ubuntu Server 22.04 LTS (HVM), SSD Volume Type (or Amazon Linux 2023)
-4. **Instance type:** `t2.micro` or `t3.micro` (Free Tier eligible)
-5. **Key pair:** Create or select key pair (`fastapi-key.pem`)
-6. **Network Settings / Security Group:**
-   - Create security group: `fastapi-ec2-sg`
-   - Inbound Rule 1: SSH (Port `22`) from `My IP` (or `0.0.0.0/0`)
-   - Inbound Rule 2: HTTP (Port `80`) from `0.0.0.0/0`
-   - Inbound Rule 3: Custom TCP (Port `8000`) from `0.0.0.0/0`
-7. Click **Launch instance**.
+### Task 5.1: Launch EC2 Instance Specification
+- **AMI:** Amazon Linux 2023 or Ubuntu 22.04 LTS
+- **Instance Type:** `t2.micro`
+- **Key Pair:** `fastapi-key.pem`
+- **Storage:** 8 GB gp3
+- **Security Group (`fastapi-ec2-sg`):**
+  - Inbound SSH (TCP `22`): `0.0.0.0/0` (or your IP)
+  - Inbound HTTP (TCP `80`): `0.0.0.0/0`
+  - Inbound Custom TCP (TCP `8000`): `0.0.0.0/0`
 
 ---
 
-### Task 5.2: Configure EC2 Instance
-Connect to the EC2 instance via SSH:
+### Task 5.2: SSH into EC2 & Install Software
 ```bash
 chmod 400 fastapi-key.pem
 ssh -i "fastapi-key.pem" ubuntu@<EC2-PUBLIC-IP>
 ```
-
-Install Docker and dependencies:
+Run installation on EC2:
 ```bash
-# Update packages
 sudo apt-get update && sudo apt-get upgrade -y
-
-# Install Docker
-sudo apt-get install -y docker.io curl git
-
-# Start and enable Docker service
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Allow non-root docker execution
+sudo apt-get install -y docker.io git curl
+sudo systemctl enable --now docker
 sudo usermod -aG docker ubuntu
-
-# Apply group changes
 newgrp docker
-
-# Verify Docker installation
 docker --version
 ```
 
 ---
 
-### Task 5.3: Build and Run Image on EC2
-
-#### Option A: Pull pre-built image from Docker Hub
+### Task 5.3: Clone Repo, Build Image Directly on EC2 & Run It
 ```bash
-# Pull image
-docker pull <DOCKERHUB_USERNAME>/fastapi-aws-app:latest
+# Clone project repository
+git clone https://github.com/<YOUR-USERNAME>/<YOUR-REPO>.git ~/fastapi-aws
+cd ~/fastapi-aws
 
-# Run container on port 80
+# Build the image directly on the EC2 instance
+docker build -t fastapi-prod-app:latest .
+
+# Run container mapped to port 80
 docker run -d \
   --name fastapi_cloud_app \
   --restart always \
   -p 80:8000 \
   -e APP_NAME="FastAPI AWS Cloud Application" \
   -e APP_ENV=production \
-  -e DB_HOST="fastapi-postgres-db.cxxxxxxx.us-east-1.rds.amazonaws.com" \
-  -e DB_PORT=5432 \
-  -e DB_NAME="fastapi_db" \
-  -e DB_USER="postgres" \
-  -e DB_PASSWORD="YourSecurePassword123!" \
-  -e AWS_REGION="us-east-1" \
+  -e DATABASE_URL="postgresql://postgres:YourPassword123!@fast-api-db.cxxxxxxx.ap-southeast-1.rds.amazonaws.com:5432/fastapi-prod" \
+  -e AWS_REGION="ap-southeast-1" \
   -e AWS_ACCESS_KEY_ID="AKIAXXXXXXXXXXXXXXXX" \
   -e AWS_SECRET_ACCESS_KEY="YourSecretKey" \
-  -e S3_BUCKET_NAME="fastapi-cloud-storage-123" \
-  <DOCKERHUB_USERNAME>/fastapi-aws-app:latest
-```
-
-#### Option B: Clone repository directly onto EC2
-```bash
-git clone https://github.com/<YOUR-USERNAME>/<YOUR-REPO>.git
-cd <YOUR-REPO>
-cp .env.example .env
-nano .env # (configure with actual RDS and S3 credentials)
-docker build -t fastapi-aws-app .
-docker run -d --name fastapi_cloud_app --restart always -p 80:8000 --env-file .env fastapi-aws-app
+  -e S3_BUCKET_NAME="fastapi-app-files-<your-id>" \
+  fastapi-prod-app:latest
 ```
 
 ---
 
-### Task 5.4: Verify Deployment
-From your browser or terminal:
-1. **Health Check:** `http://<EC2-PUBLIC-IP>/health`
-2. **Swagger UI:** `http://<EC2-PUBLIC-IP>/docs`
-3. **Database Test:**
-   ```bash
-   curl -X POST "http://<EC2-PUBLIC-IP>/items/" \
-     -H "Content-Type: application/json" \
-     -d '{"title": "Production Test", "description": "Deployed on EC2"}'
-   ```
-4. **File Upload Test:**
-   ```bash
-   curl -X POST "http://<EC2-PUBLIC-IP>/files/upload" \
-     -F "file=@test.txt"
-   ```
+### Task 5.4: Test Deployed App
+Verify public access via browser / cURL:
+- **Interactive Swagger UI:** `http://<EC2-PUBLIC-IP>/docs`
+- **Health Check Endpoint:** `http://<EC2-PUBLIC-IP>/health`
+- **Items CRUD Test:**
+  ```bash
+  curl -X POST "http://<EC2-PUBLIC-IP>/items/" \
+    -H "Content-Type: application/json" \
+    -d '{"title": "EC2 Production Item", "description": "Verified on EC2"}'
+  ```
 
 ### Deliverables for Part 5:
-- [x] EC2 instance running in AWS
-- [x] Security Group rules for Ports 22, 80, 8000
-- [x] Docker running the containerized FastAPI service on EC2
-- [x] Public endpoints accessible via browser and cURL
+- [ ] **Screenshot 5.1:** AWS Console showing running EC2 instance (`fastapi-ec2-server`, t2.micro, Public IP)
+- [ ] **Screenshot 5.2:** EC2 Security Group inbound rules (ports 22, 80, 8000)
+- [ ] **Screenshot 5.3:** Terminal on EC2 showing `docker ps` with running container `fastapi_cloud_app`
+- [ ] **Screenshot 5.4:** Browser showing successful response from `http://<EC2-PUBLIC-IP>/health` and `http://<EC2-PUBLIC-IP>/docs`
 
 ---
 
 ## Part 6: CI/CD Pipeline with GitHub Actions (15%)
 
-### Task 6.1: Create GitHub Action Workflow
-The automated workflow is located at `.github/workflows/deploy.yml`.
-It consists of two sequential jobs:
-1. **`ci-test`:**
-   - Runs on every push and pull request to `main`
-   - Sets up Python 3.11 environment
-   - Installs dependencies from `requirements.txt`
-   - Executes Pytest unit/integration tests
-   - Verifies Docker build
-2. **`cd-deploy`:**
-   - Triggers automatically upon successful merge/push to `main`
-   - Builds container image and pushes to Docker Hub with tags `:latest` and `:<commit-sha>`
-   - Connects to Amazon EC2 via SSH (`appleboy/ssh-action`)
-   - Pulls updated image, stops old container, starts new container with production secrets
-   - Runs automated health verification `curl -f http://localhost:80/health`
+The pipeline SSHes into the EC2 instance, pulls the latest code, rebuilds the Docker image directly on the instance, and restarts the container.
 
----
+### Task 6.1: Workflow File
+Configured at `.github/workflows/deploy.yml`.
 
-### Task 6.2: Configure GitHub Secrets
-Navigate to **GitHub Repository** -> **Settings** -> **Secrets and variables** -> **Actions** -> **New repository secret**.
+### Task 6.2: GitHub Secrets Configuration
+In **GitHub Repository** -> **Settings** -> **Secrets and variables** -> **Actions**:
 
-Add the following required secrets:
-
-| Secret Name | Description | Example / Format |
+| Secret Name | Description | Value Example |
 |---|---|---|
-| `DOCKERHUB_USERNAME` | Docker Hub username | `johndoe` |
-| `DOCKERHUB_TOKEN` | Docker Hub Personal Access Token | `dckr_pat_xxxx` |
-| `EC2_HOST` | Amazon EC2 Public IPv4 Address | `54.210.xx.xx` |
-| `EC2_USERNAME` | EC2 SSH Username | `ubuntu` (or `ec2-user`) |
-| `EC2_SSH_KEY` | Private SSH Key content (`.pem`) | `-----BEGIN RSA PRIVATE KEY-----...` |
-| `DB_HOST` | AWS RDS PostgreSQL Endpoint | `fastapi-postgres-db.cxxxxxxx.rds.amazonaws.com` |
-| `DB_PORT` | PostgreSQL Port | `5432` |
-| `DB_NAME` | PostgreSQL Database Name | `fastapi_db` |
-| `DB_USER` | RDS Master Username | `postgres` |
-| `DB_PASSWORD` | RDS Master Password | `YourSecurePassword123!` |
-| `AWS_REGION` | AWS Region | `us-east-1` |
-| `AWS_ACCESS_KEY_ID` | IAM User Access Key ID | `AKIAXXXXXXXXXXXXXXXX` |
+| `AWS_ACCESS_KEY_ID` | IAM User Access Key | `AKIAXXXXXXXXXXXXXXXX` |
 | `AWS_SECRET_ACCESS_KEY`| IAM User Secret Access Key | `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` |
-| `S3_BUCKET_NAME` | S3 Bucket Name | `fastapi-cloud-storage-123` |
+| `EC2_HOST` | EC2 Public IPv4 Address | `13.250.xx.xx` |
+| `EC2_SSH_KEY` | Private SSH Key for EC2 (`.pem`) | `-----BEGIN RSA PRIVATE KEY-----...` |
+| `DATABASE_URL` | Full RDS Connection String | `postgresql://postgres:pass@fast-api-db.cxxxxxxx.ap-southeast-1.rds.amazonaws.com:5432/fastapi-prod` |
+| `S3_BUCKET_NAME` | S3 Bucket Name | `fastapi-app-files-<your-id>` |
+
+### Deliverables for Part 6:
+- [x] Workflow file `.github/workflows/deploy.yml`
+- [ ] **Screenshot 6.1:** GitHub Repository Secrets settings page showing all 6 configured secrets
+- [ ] **Screenshot 6.2:** GitHub Actions tab showing green checkmark on successful workflow run
+- [ ] **Screenshot 6.3:** GitHub Actions deployment step log showing remote build and container restart on EC2
 
 ---
 
-## Submission Checklist
+## Final Submission Checklist
 
-- [ ] **Part 1: IAM Configuration**
-  - [ ] IAM user created with programmatic access keys
-  - [ ] Attached policies: RDS, S3, EC2
-  - [ ] AWS CLI configured and verified with `aws sts get-caller-identity`
-- [ ] **Part 2: Database Setup Amazon RDS**
-  - [ ] PostgreSQL RDS instance created and available
-  - [ ] Security Group inbound port 5432 configured
-  - [ ] Connection tested via `python scripts/test_db_connection.py`
-- [ ] **Part 3: File Storage with Amazon S3**
-  - [ ] S3 bucket created with unique name
-  - [ ] File upload endpoints implemented (`/files/upload`)
-  - [ ] Test upload executed and verified via `python scripts/test_s3_connection.py`
-- [ ] **Part 4: Containerization with Docker**
-  - [ ] `Dockerfile` and `docker-compose.yml` verified
-  - [ ] Image built and tested locally (`docker run` / `curl /health`)
-- [ ] **Part 5: Deploy to Amazon EC2**
-  - [ ] EC2 instance running Ubuntu/Amazon Linux
-  - [ ] Docker installed and configured
-  - [ ] Container running and serving on port 80 / 8000
-  - [ ] Health check accessible at `http://<EC2_IP>/health`
-- [ ] **Part 6: CI/CD Pipeline with GitHub Actions**
-  - [ ] `.github/workflows/deploy.yml` committed to repository
-  - [ ] GitHub Repository Secrets configured
-  - [ ] Push to `main` triggered workflow and successfully deployed
+- [ ] All source code committed and pushed to GitHub
+- [ ] `Dockerfile` and `docker-compose.yml` present in project root
+- [ ] `.github/workflows/deploy.yml` present and passing
+- [ ] `README.md` complete with all 8 required sections
+- [ ] Application running live on Amazon EC2 (Port 80)
+- [ ] Amazon RDS PostgreSQL database connected and functional
+- [ ] Amazon S3 bucket receiving uploads and returning URLs
+- [ ] All required screenshots captured and attached to final report

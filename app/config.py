@@ -10,16 +10,16 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     PORT: int = 8000
 
-    # AWS RDS PostgreSQL Settings
+    # AWS RDS PostgreSQL Settings (Task 2.1)
     DB_HOST: Optional[str] = None
     DB_PORT: int = 5432
-    DB_USER: Optional[str] = None
+    DB_USER: Optional[str] = "postgres"
     DB_PASSWORD: Optional[str] = None
-    DB_NAME: Optional[str] = None
+    DB_NAME: Optional[str] = "fastapi-prod"
     DATABASE_URL: Optional[str] = None
 
-    # AWS S3 Settings
-    AWS_REGION: str = "us-east-1"
+    # AWS S3 Settings (Task 3.1)
+    AWS_REGION: str = "ap-southeast-1"
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
     S3_BUCKET_NAME: Optional[str] = None
