@@ -8,11 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ==========================================
-  # Job 1: Continuous Integration (Test & Lint)
-  # ==========================================
-  ci-test:
-    name: Run Pytest Tests & Local Docker Build Test
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -37,18 +34,13 @@ jobs:
         run: |
           pytest -v tests/
 
-      - name: Verify Docker Build Locally (Task 4.3)
+      - name: Build Docker Image
         run: |
           docker build -t fastapi-prod-app:test .
 
-  # ==========================================
-  # Job 2: Continuous Deployment to Amazon EC2
-  # Directly pulls, rebuilds image on EC2, and restarts container
-  # (No Container Registry required as per Exam Note)
-  # ==========================================
-  cd-deploy:
-    name: SSH into EC2, Rebuild on Instance & Restart
-    needs: ci-test
+  deploy:
+    name: Deploy to EC2
+    needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
