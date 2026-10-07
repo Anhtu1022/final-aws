@@ -20,7 +20,6 @@ services:
     networks:
       - app_network
 
-  # Local PostgreSQL (Active for local development; when deployed to EC2 with RDS, point .env DB_HOST to RDS)
   postgres:
     image: postgres:15-alpine
     container_name: local_postgres_db

@@ -71,14 +71,13 @@ Before starting, ensure you have the following installed and configured:
 git clone https://github.com/<your-username>/<your-repo-name>.git
 cd <your-repo-name>
 
-# Create and activate virtual environment
 python -m venv .venv
-# On Windows PowerShell:
+
 .venv\Scripts\Activate.ps1
-# On Linux/macOS:
+
 source .venv/bin/activate
 
-# Install dependencies
+
 pip install -r requirements.txt
 ```
 
@@ -103,17 +102,10 @@ uvicorn app.main:app --reload --port 8000
 
 ### Step 5: Test Docker Build Locally (Task 4.3)
 ```bash
-# Build image
 docker build -t fastapi-prod-app:latest .
-
-# Run container locally
 docker run -d --name fastapi_test -p 8000:8000 --env-file .env fastapi-prod-app:latest
-
-# Check status and test endpoint
 docker ps
 curl http://localhost:8000/health
-
-# Clean up
 docker stop fastapi_test && docker rm fastapi_test
 ```
 
@@ -173,10 +165,8 @@ Build directly on the instance (no external registry required):
 git clone https://github.com/<your-username>/<your-repo-name>.git ~/fastapi-aws
 cd ~/fastapi-aws
 
-# Build image on EC2
 docker build -t fastapi-prod-app:latest .
 
-# Run container on port 80
 docker run -d \
   --name fastapi_cloud_app \
   --restart always \
@@ -227,31 +217,11 @@ docker run -d \
 
 ### Example cURL Commands:
 ```bash
-# 1. Health Check
 curl http://<EC2-PUBLIC-IP>/health
 
-# 2. Create Item in RDS PostgreSQL
 curl -X POST "http://<EC2-PUBLIC-IP>/items/" \
   -H "Content-Type: application/json" \
   -d '{"title": "Assignment Item", "description": "Verified on AWS RDS"}'
 
-# 3. Upload File to S3
 curl -X POST "http://<EC2-PUBLIC-IP>/files/upload" \
   -F "file=@sample.png"
-```
-
----
-
-## 📋 Submission Checklist
-
-- [x] All source code committed to GitHub repository
-- [x] Application successfully deployed to Amazon EC2
-- [x] All API endpoints working correctly (`/health`, `/items/`, `/files/upload`)
-- [x] CI/CD pipeline triggered and completed successfully
-- [x] All screenshots captured and included in submission package:
-  - [ ] Part 1: IAM User creation, Policy permissions, `aws sts get-caller-identity`
-  - [ ] Part 2: RDS Instance details, successful connection output
-  - [ ] Part 3: S3 Bucket configuration, file upload API, file object in S3
-  - [ ] Part 4: Dockerfile, docker-compose.yml, local docker run output
-  - [ ] Part 5: Running EC2 instance, Security Group rules, container ps, public API response
-  - [ ] Part 6: GitHub Secrets configuration, successful Actions workflow run

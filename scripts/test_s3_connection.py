@@ -8,7 +8,6 @@ import sys
 import os
 import uuid
 
-# Ensure project root is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import boto3
@@ -38,12 +37,12 @@ def test_s3():
     try:
         s3 = boto3.client("s3", **client_kwargs)
 
-        # 1. Check head_bucket
+   
         print("[*] Step 1: Checking bucket existence...")
         s3.head_bucket(Bucket=settings.S3_BUCKET_NAME)
         print("    -> Bucket exists and is accessible!")
 
-        # 2. Put object test
+      
         test_key = f"test-diagnostics/ping-{uuid.uuid4().hex[:8]}.txt"
         test_payload = b"Hello from FastAPI AWS S3 integration test!"
         print(f"[*] Step 2: Uploading diagnostic object '{test_key}'...")
@@ -55,14 +54,14 @@ def test_s3():
         )
         print("    -> Upload successful!")
 
-        # 3. Read object test
+        
         print("[*] Step 3: Verifying object retrieval...")
         response = s3.get_object(Bucket=settings.S3_BUCKET_NAME, Key=test_key)
         body = response["Body"].read()
         assert body == test_payload
         print("    -> Object verified successfully!")
 
-        # 4. Clean up test object
+      
         print("[*] Step 4: Cleaning up diagnostic object...")
         s3.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=test_key)
         print("    -> Test object deleted cleanly.")

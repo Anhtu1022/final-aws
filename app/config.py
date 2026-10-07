@@ -10,7 +10,6 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     PORT: int = 8000
 
-    # Database Settings
     DB_HOST: Optional[str] = None
     DB_PORT: int = 5432
     DB_USER: Optional[str] = "postgres"
@@ -18,7 +17,6 @@ class Settings(BaseSettings):
     DB_NAME: Optional[str] = "fastapiprod"
     DATABASE_URL: Optional[str] = None
 
-    # Storage Settings
     AWS_REGION: str = "ap-southeast-1"
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
@@ -32,15 +30,7 @@ class Settings(BaseSettings):
     )
 
     def get_database_url(self) -> str:
-        """
-        Builds the database URL.
-        Priority:
-        1. DATABASE_URL from environment
-        2. Assembled from DB_* environment variables
-        3. Fallback to local SQLite database if no PostgreSQL host is provided.
-        """
         if self.DATABASE_URL:
-            # Handle possible postgres:// scheme from old heroku/aws style
             url = self.DATABASE_URL
             if url.startswith("postgres://"):
                 url = url.replace("postgres://", "postgresql+psycopg2://", 1)
@@ -51,7 +41,6 @@ class Settings(BaseSettings):
         if self.DB_HOST and self.DB_USER and self.DB_PASSWORD and self.DB_NAME:
             return f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
-        # Fallback to local SQLite for local testing without cloud RDS
         return "sqlite:///./local_test.db"
 
 

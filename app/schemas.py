@@ -3,7 +3,6 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
-# --- Item Schemas ---
 class ItemBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
@@ -26,7 +25,6 @@ class ItemResponse(ItemBase):
     model_config = {"from_attributes": True}
 
 
-# --- S3 File Upload Schemas ---
 class FileUploadResponse(BaseModel):
     id: int
     original_filename: str
@@ -45,7 +43,6 @@ class PresignedUrlResponse(BaseModel):
     expires_in_seconds: int
 
 
-# --- Health Check Schemas ---
 class HealthResponse(BaseModel):
     status: str
     app_name: str

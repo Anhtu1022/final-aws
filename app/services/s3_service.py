@@ -16,8 +16,7 @@ class S3Service:
         if self.folder:
             self.folder += "/"
 
-        # Create boto3 client with explicit credentials if provided,
-        # otherwise boto3 automatically falls back to IAM Role / EC2 Instance Profile / ~/.aws/credentials
+
         client_kwargs = {
             "region_name": self.region
         }
@@ -48,18 +47,15 @@ class S3Service:
                 detail="S3_BUCKET_NAME is not configured in environment variables."
             )
 
-        # Generate unique key to prevent name collisions
         file_ext = os.path.splitext(file.filename)[1]
         unique_id = uuid.uuid4().hex
         s3_key = f"{self.folder}{unique_id}{file_ext}"
 
         try:
-            # Read file content and get size
             file.file.seek(0, os.SEEK_END)
             file_size = file.file.tell()
             file.file.seek(0)
 
-            # Upload to S3
             extra_args = {}
             if file.content_type:
                 extra_args["ContentType"] = file.content_type
@@ -70,8 +66,7 @@ class S3Service:
                 Key=s3_key,
                 ExtraArgs=extra_args
             )
-
-            # Construct public URL
+            
             s3_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{s3_key}"
 
             return {
@@ -128,5 +123,4 @@ class S3Service:
             )
 
 
-# Singleton instance
 s3_service = S3Service()

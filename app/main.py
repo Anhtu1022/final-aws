@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import engine, Base
-import app.models  # Ensure models are loaded before table creation
+import app.models
 from app.routers import health, items, storage
 
 settings = get_settings()
@@ -12,23 +12,19 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Automatically initialize tables upon startup
     try:
         Base.metadata.create_all(bind=engine)
-        print("Database schema successfully verified / initialized.")
     except Exception as e:
-        print(f"Warning: Database initialization encountered an error: {e}")
+        print(f"Database error: {e}")
     yield
 
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Production-grade FastAPI deployment on AWS (EC2, RDS PostgreSQL, S3, Docker, CI/CD GitHub Actions)",
     version="1.0.0",
     lifespan=lifespan
 )
 
-# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -37,7 +33,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register Routers
 app.include_router(health.router)
 app.include_router(items.router)
 app.include_router(storage.router)
